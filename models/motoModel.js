@@ -1,4 +1,3 @@
-// src/models/Moto.js
 const mongoose = require("mongoose");
 
 const motoSchema = new mongoose.Schema(
@@ -7,7 +6,7 @@ const motoSchema = new mongoose.Schema(
     brand: { type: String, required: true },
     model: { type: String, required: true },
     color: { type: String },
-    customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   {
     timestamps: true,

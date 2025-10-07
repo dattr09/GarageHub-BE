@@ -1,11 +1,10 @@
-// src/controllers/motosController.js
-const motosService = require('../services/motoService');
+const Moto = require('../models/motoModel');
 
 class MotosController {
   // [GET] /api/motos
   async getAll(req, res) {
     try {
-      const motos = await motosService.getAll();
+      const motos = await Moto.find();
       res.json(motos);
     } catch (error) {
       console.error('Error fetching motos:', error);
@@ -17,7 +16,7 @@ class MotosController {
   async getByLicensePlate(req, res) {
     const { licensePlate } = req.params;
     try {
-      const moto = await motosService.getByLicensePlate(licensePlate);
+      const moto = await Moto.findOne({ licensePlate });
       if (!moto) return res.status(404).json({ message: 'Moto not found' });
       res.json(moto);
     } catch (error) {
@@ -26,10 +25,23 @@ class MotosController {
     }
   }
 
+  // [GET] /api/motos/user/:userId
+  async getByUserId(req, res) {
+    const { userId } = req.params;
+    try {
+      const motos = await Moto.find({ userId });
+      res.json(motos);
+    } catch (error) {
+      console.error('Error fetching motos by userId:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
   // [POST] /api/motos
   async create(req, res) {
     try {
-      const newMoto = await motosService.create(req.body);
+      const moto = new Moto(req.body);
+      const newMoto = await moto.save();
       res.status(201).json(newMoto);
     } catch (error) {
       console.error('Error creating moto:', error);
@@ -41,7 +53,7 @@ class MotosController {
   async update(req, res) {
     const { licensePlate } = req.params;
     try {
-      const updatedMoto = await motosService.update(licensePlate, req.body);
+      const updatedMoto = await Moto.findOneAndUpdate({ licensePlate }, req.body, { new: true });
       if (!updatedMoto) return res.status(404).json({ message: 'Moto not found' });
       res.json(updatedMoto);
     } catch (error) {
@@ -54,7 +66,7 @@ class MotosController {
   async delete(req, res) {
     const { licensePlate } = req.params;
     try {
-      const deletedMoto = await motosService.delete(licensePlate);
+      const deletedMoto = await Moto.findOneAndDelete({ licensePlate });
       if (!deletedMoto) return res.status(404).json({ message: 'Moto not found' });
       res.json({ message: 'Moto deleted successfully' });
     } catch (error) {
