@@ -6,6 +6,8 @@ const connectDB = require("./config/db");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const cors = require("cors");
+const motosRoute = require("./routes/motosRoute");
+
 // const { setupSocket } = require("./sockets/chatSocket");
 const http = require("http");
 
@@ -24,6 +26,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/v1", require("./routes/index"));
+app.use("/api/motos", motosRoute);
 
 app.use("/", (req, res) => {
   res.send("API is running");
