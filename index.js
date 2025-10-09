@@ -26,7 +26,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/v1", require("./routes/index"));
-app.use("/api/motos", motosRoute);
 
 app.use("/", (req, res) => {
   res.send("API is running");
