@@ -44,7 +44,7 @@ exports.register = async (req, res) => {
 
     await user.save();
 
-    await sendEmail(email, "Xác thực tài khoản", `Mã OTP của bạn là: ${otp}`);
+    await sendEmail(email, "Xác thực tài khoản", otp, fullName);
 
     res.status(201).json({
       message:
@@ -196,20 +196,22 @@ exports.forgotPassword = async (req, res) => {
         .status(404)
         .json({ message: "Không tồn tại người dùng với email này." });
 
-    const otp = generateOTP(); // Tạo mã OTP ngẫu nhiên (6 chữ số)
+    const otp = generateOTP();
     user.otp = otp;
-    user.otpExpires = Date.now() + 10 * 60 * 1000; // Hết hạn sau 10 phút
+    user.otpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     await sendEmail(
       email,
       "Đặt lại mật khẩu",
-      `Mã OTP để đặt lại mật khẩu của bạn là: ${otp}. Mã này có hiệu lực trong 10 phút.`
+      otp,
+      user.fullName
     );
 
     res.json({ message: "OTP đã được gửi tới email của bạn." });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Lỗi forgotPassword:", err);
+    res.status(500).json({ message: "Đã xảy ra lỗi trong quá trình gửi OTP." });
   }
 };
 
