@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const cors = require("cors");
 const motosRoute = require("./routes/motosRoute");
+const authRoute = require("./routes/auth");
 
 // const { setupSocket } = require("./sockets/chatSocket");
 const http = require("http");
@@ -25,6 +26,7 @@ app.use(cookieParser());
 // Serve static files from public directory (path already set up)
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use("/api/auth", authRoute);
 app.use("/api/v1", require("./routes/index"));
 app.use("/api/motos", motosRoute);
 

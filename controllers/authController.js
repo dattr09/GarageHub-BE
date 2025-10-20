@@ -13,6 +13,7 @@ const createToken = (user) => {
 
 // Đăng ký
 exports.register = async (req, res) => {
+  console.log("Register route hit:", req.body);
   try {
     const { fullName, dateOfBirth, phoneNumber, address, email, password } = req.body;
 
