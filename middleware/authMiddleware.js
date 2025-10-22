@@ -1,10 +1,12 @@
 const jwt = require("jsonwebtoken");
 
-// Middleware xác thực
-exports.authMiddleware = (req, res, next) => {
-  const token =
-    req.cookies?.token || req.header("Authorization")?.replace("Bearer ", "");
 
+function auth(requiredRoles = []) {
+  return (req, res, next) => {
+    // Lấy token từ cookie hoặc header
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+
+    if (!token) return res.status(401).json({ message: "Chưa đăng nhập" });
   if (!token)
     return res
       .status(401)
