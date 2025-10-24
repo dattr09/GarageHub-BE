@@ -4,15 +4,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const generateOTP = require("../utils/generateOTP");
 const sendEmail = require("../utils/sendEmail");
+const generateToken = require("../utils/generateToken");
 
-// ======================= Helper ==========================
-const createToken = (user) => {
-  return jwt.sign({ id: user._id, roles: user.roles }, process.env.SECRET_KEY, {
-    expiresIn: "1d",
-  });
-};
-
-// ======================= Đăng ký ==========================
 exports.register = async (req, res) => {
   try {
     const { fullName, dateOfBirth, phoneNumber, address, email, password } =
@@ -106,7 +99,7 @@ exports.loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Sai mật khẩu." });
 
-    const token = createToken(user);
+    const token = generateToken(user);
 
     res
       .cookie("token", token, {
@@ -201,12 +194,7 @@ exports.forgotPassword = async (req, res) => {
     user.otpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    await sendEmail(
-      email,
-      "Đặt lại mật khẩu",
-      otp,
-      user.fullName
-    );
+    await sendEmail(email, "Đặt lại mật khẩu", otp, user.fullName);
 
     res.json({ message: "OTP đã được gửi tới email của bạn." });
   } catch (err) {

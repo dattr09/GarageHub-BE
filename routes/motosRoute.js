@@ -1,29 +1,49 @@
 const express = require("express");
 const router = express.Router();
 const motosController = require("../controllers/motosController");
-const auth = require("../middleware/authMiddleware"); // ✅ import đúng middleware
+const {
+  authenticateToken,
+  authorizeRoles,
+} = require("../middleware/authMiddleware");
 
 // 📘 Lấy toàn bộ danh sách xe (Admin, Employee)
-router.get("/", auth(["Admin", "Employee"]), motosController.getAllMotos);
+router.get(
+  "/",
+  authenticateToken,
+  authorizeRoles(["admin", "Employee"]),
+  motosController.getAllMotos
+);
 
 // 🔍 Lấy xe theo biển số (Admin, Employee)
 router.get(
   "/:licensePlate",
-  auth(["admin", "employee"]),
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
   motosController.getByLicensePlate
 );
 
 // ➕ Thêm xe mới (Admin)
-router.post("/", auth(["admin"]), motosController.createMoto);
+router.post(
+  "/",
+  authenticateToken,
+  authorizeRoles(["admin"]),
+  motosController.createMoto
+);
 
 // ✏️ Cập nhật thông tin xe (Admin, Employee)
 router.put(
   "/:licensePlate",
-  auth(["admin", "employee"]),
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
   motosController.updateMoto
 );
 
 // ❌ Xóa xe (Admin)
-router.delete("/:licensePlate", auth(["Admin"]), motosController.deleteMoto);
+router.delete(
+  "/:licensePlate",
+  authenticateToken,
+  authorizeRoles(["admin"]),
+  motosController.deleteMoto
+);
 
 module.exports = router;
