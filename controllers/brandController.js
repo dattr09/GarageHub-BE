@@ -1,3 +1,4 @@
+const e = require("express");
 const Brand = require("../models/brandModel");
 
 // ✅ Lấy tất cả Brand
@@ -5,6 +6,19 @@ exports.getAllBrands = async (req, res) => {
   try {
     const brands = await Brand.find();
     res.json(brands);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+exports.getBrandById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const brand = await Brand.findById(id);
+
+    if (!brand)
+      return res.status(404).json({ message: "Không tìm thấy thương hiệu" });
+
+    res.json(brand);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
