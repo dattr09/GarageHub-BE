@@ -99,24 +99,19 @@ exports.loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Sai mật khẩu." });
 
-    const token = generateToken(user._id, res);
+    // Sử dụng hàm generateToken đã có (hàm này đã đặt cookie)
+    const token = generateToken(user, res);
 
-    res
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000,
-      })
-      .json({
-        message: "Đăng nhập thành công.",
-        user: {
-          id: user._id,
-          email: user.email,
-          fullName: user.fullName,
-          roles: user.roles,
-        },
-      });
+    // Trả về thông tin user và token (token optional vì đã nằm trong cookie)
+    res.json({
+      message: "Đăng nhập thành công.",
+      token,
+      user: {
+        userId: user._id,
+        name: user.fullName,
+        roles: user.roles,
+      },
+    });
   } catch (err) {
     console.error("Lỗi loginUser:", err);
     res.status(500).json({ message: "Lỗi máy chủ." });

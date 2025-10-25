@@ -1,14 +1,12 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const orderController = require('../controllers/orderController');
+const orderController = require("../controllers/orderController");
 
-// Các route API
-
-router.get('/user/:userId', /*authorizeRoles('Admin', 'Employee', 'Customer'),*/ orderController.getByUser);
-router.get('/', /*authorizeRoles('Admin', 'Employee'),*/ orderController.getAll);
-router.get('/:orderId', /*authorizeRoles('Admin', 'Employee'),*/ orderController.getById);
-router.post('/', /*authorizeRoles('Admin', 'Employee', 'Customer'),*/ orderController.create);
-router.put('/:orderId', /*authorizeRoles('Admin', 'Employee'),*/ orderController.update);
-router.delete('/:orderId', /*authorizeRoles('Admin'),*/ orderController.delete);
+router.post("/", orderController.createOrder);
+router.get("/", orderController.getAllOrders);
+router.get("/user/:userId", orderController.getOrdersByUser);
+router.get("/:orderId", orderController.getOrderById);
+router.put("/:orderId", orderController.updateOrder);
+router.delete("/:orderId", orderController.deleteOrder);
 
 module.exports = router;

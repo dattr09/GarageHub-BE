@@ -5,4 +5,6 @@ router.use("/orders", require("./orderRoute"));
 router.use("/motos", require("./motosRoute"));
 router.use("/brands", require("./brandRoutes"));
 router.use("/parts", require("./partRoute"));
+router.use("/repair-orders", require("./repairOrderRoutes"));
+
 module.exports = router;

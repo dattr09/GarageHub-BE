@@ -22,7 +22,11 @@ const authenticateToken = (req, res, next) => {
 // ✅ Middleware: Phân quyền
 const authorizeRoles = (allowedRoles = []) => {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.roles)) {
+    if (
+      !req.user ||
+      !req.user.roles?.some((role) => allowedRoles.includes(role))
+    ) {
+      console.error("Unauthorized access attempt:", req.user);
       return res.status(403).json({ message: "Không có quyền truy cập." });
     }
     next();
