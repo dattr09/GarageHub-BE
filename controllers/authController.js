@@ -7,7 +7,6 @@ const sendEmail = require("../utils/sendEmail");
 const generateToken = require("../utils/generateToken");
 
 exports.register = async (req, res) => {
-  console.log("Register route hit:", req.body);
   try {
     const { fullName, dateOfBirth, phoneNumber, address, email, password } =
       req.body;
