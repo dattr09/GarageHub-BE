@@ -99,7 +99,7 @@ exports.loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Sai mật khẩu." });
 
-    const token = generateToken(user);
+    const token = generateToken(user._id, res);
 
     res
       .cookie("token", token, {
