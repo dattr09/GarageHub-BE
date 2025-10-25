@@ -1,26 +1,33 @@
 const jwt = require("jsonwebtoken");
 
-function auth(requiredRoles = []) {
+// ✅ Middleware: Kiểm tra token
+const authenticateToken = (req, res, next) => {
+  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return res
+      .status(401)
+      .json({ message: "Chưa đăng nhập hoặc thiếu token." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    req.user = decoded; // Lưu thông tin user vào req
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn." });
+  }
+};
+
+// ✅ Middleware: Phân quyền
+const authorizeRoles = (allowedRoles = []) => {
   return (req, res, next) => {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ message: "Chưa đăng nhập" });
-
-    try {
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
-      req.user = decoded;
-
-      if (
-        requiredRoles.length &&
-        !requiredRoles.some((r) => decoded.roles.includes(r))
-      ) {
-        return res.status(403).json({ message: "Không có quyền truy cập" });
-      }
-
-      next();
-    } catch (err) {
-      res.status(401).json({ message: "Token không hợp lệ" });
+    if (!req.user || !allowedRoles.includes(req.user.roles)) {
+      return res.status(403).json({ message: "Không có quyền truy cập." });
     }
+    next();
   };
-}
+};
 
-module.exports = auth;
+// ✅ Export cả hai middleware
+module.exports = { authenticateToken, authorizeRoles };
