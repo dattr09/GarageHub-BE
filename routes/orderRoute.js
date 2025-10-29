@@ -13,24 +13,40 @@ router.get("/:orderId", orderController.getOrderById);
 router.put("/:orderId", orderController.updateOrder);
 router.delete("/:orderId", orderController.deleteOrder);
 router.post("/", authenticateToken, createOrder);
-router.get("/confirm-order/:orderId", async (req, res) => {
+router.get("/confirm-order/:id", async (req, res) => {
     try {
-        const { orderId } = req.params;
+        const order = await Order.findById(req.params.id);
 
-        // Tìm đơn hàng theo ID
-        const order = await Order.findById(orderId);
+        // Kiểm tra nếu không tìm thấy đơn hàng
         if (!order) {
-            return res.status(404).json({ message: "Không tìm thấy đơn hàng!" });
+            return res.redirect(
+                `${process.env.FRONTEND_URL}/confirm-order/${req.params.id}?status=notfound`
+            );
         }
 
-        // Cập nhật trạng thái đơn hàng
+        // Kiểm tra nếu đơn hàng đã được xác nhận trước đó
+        if (order.status === "Completed") {
+            return res.redirect(
+                `${process.env.FRONTEND_URL}/confirm-order/${order._id}?status=already`
+            );
+        }
+
+        // Cập nhật trạng thái đơn hàng thành "Completed"
         order.status = "Completed";
+        order.updatedAt = new Date(); // Cập nhật thời gian chỉnh sửa
         await order.save();
 
-        res.status(200).json({ message: "Đơn hàng đã được xác nhận thành công!", order });
+        // Chuyển hướng sang frontend hiển thị giao diện xác nhận thành công
+        return res.redirect(
+            `${process.env.FRONTEND_URL}/confirm-order/${order._id}?status=success`
+        );
     } catch (error) {
         console.error("Lỗi khi xác nhận đơn hàng:", error);
-        res.status(500).json({ message: "Lỗi server!", error: error.message });
+
+        // Chuyển hướng sang frontend hiển thị giao diện lỗi
+        res.redirect(
+            `${process.env.FRONTEND_URL}/confirm-order/${req.params.id}?status=error`
+        );
     }
 });
 

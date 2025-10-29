@@ -11,6 +11,7 @@ const {
   resetPassword,
   forgotPassword,
   getMe,
+  getAllUsers,
 } = require("../controllers/authController");
 const {
   authenticateToken,
@@ -27,6 +28,12 @@ router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
 router.get("/me", authenticateToken, getMe);
+router.get(
+  "/users",
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
+  getAllUsers
+);
 
 module.exports = router;
 

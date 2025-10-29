@@ -43,13 +43,13 @@ exports.createOrder = async (req, res) => {
     // Lấy thông tin chi tiết sản phẩm từ cơ sở dữ liệu
     const detailedItems = await Promise.all(
       items.map(async (item) => {
-        const part = await Part.findById(item.id);
+        const part = await Part.findById(item.id).populate("brandId", "name");
         if (!part) {
           throw new Error(`Không tìm thấy sản phẩm với ID: ${item.id}`);
         }
         return {
           name: part.name,
-          brand: part.brand || "Không xác định", // Lấy brand từ cơ sở dữ liệu
+          brand: part.brandId ? part.brandId.name : "Không xác định",
           price: part.price,
           quantity: item.quantity,
         };
@@ -57,7 +57,7 @@ exports.createOrder = async (req, res) => {
     );
 
     // Gửi email xác nhận đơn hàng
-    const confirmationLink = `${process.env.FRONTEND_URL}/confirm-order/${newOrder._id}`;
+    const confirmationLink = `${process.env.BACKEND_URL}/api/v1/orders/confirm-order/${newOrder._id}`;
     await sendOrderConfirmationEmail({
       to: email,
       orderId: newOrder.orderId,
@@ -96,23 +96,25 @@ exports.getAllOrders = async (req, res) => {
 
 // 🟢 Lấy đơn hàng theo userId
 exports.getOrdersByUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
+  try {
+    const userId = req.params.userId;
+    const orders = await Order.find({ userId })
+      .populate({
+        path: "items.partId",
+        select: "name price brandId",
+        populate: {
+          path: "brandId",
+          model: "Brand",
+          select: "name",
+        },
+      })
+      .sort({ createdAt: -1 });
 
-        if (!userId) {
-            return res.status(400).json({ message: "Thiếu userId" });
-        }
-
-        // Lấy danh sách đơn hàng của người dùng và populate thông tin linh kiện
-        const orders = await Order.find({ userId })
-            .populate("items.partId", "name brand price image") // Lấy thông tin chi tiết linh kiện
-            .sort({ createdAt: -1 });
-
-        res.status(200).json(orders);
-    } catch (error) {
-        console.error("Lỗi khi lấy lịch sử mua hàng:", error);
-        res.status(500).json({ message: "Lỗi server!", error: error.message });
-    }
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Lỗi khi lấy đơn hàng:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
 };
 
 // 🟢 Lấy đơn hàng theo ID
@@ -179,6 +181,40 @@ exports.deleteOrder = async (req, res) => {
     console.error("Error deleting order:", error);
     res.status(500).json({
       message: "Không thể xóa đơn hàng",
+      error: error.message,
+    });
+  }
+};
+
+// 🟢 Xác nhận đơn hàng
+exports.confirmOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Tìm đơn hàng theo ID
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng!" });
+    }
+
+    // Kiểm tra trạng thái đơn hàng trước khi cập nhật
+    if (order.status === "Completed") {
+      return res.status(400).json({ message: "Đơn hàng đã được xác nhận trước đó!" });
+    }
+
+    // Cập nhật trạng thái đơn hàng
+    order.status = "Completed";
+    order.updatedAt = new Date(); // Cập nhật thời gian chỉnh sửa
+    await order.save();
+
+    res.status(200).json({
+      message: "Đơn hàng đã được xác nhận thành công!",
+      order,
+    });
+  } catch (error) {
+    console.error("Lỗi khi xác nhận đơn hàng:", error);
+    res.status(500).json({
+      message: "Lỗi server! Không thể xác nhận đơn hàng.",
       error: error.message,
     });
   }

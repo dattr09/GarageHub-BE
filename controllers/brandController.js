@@ -6,9 +6,10 @@ const Part = require("../models/partModel");
 exports.getAllBrands = async (req, res) => {
   try {
     const brands = await Brand.find();
-    res.json(brands);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(200).json(brands);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách thương hiệu:", error);
+    res.status(500).json({ message: "Lỗi máy chủ." });
   }
 };
 exports.getBrandById = async (req, res) => {

@@ -5,30 +5,32 @@ const User = require("../models/userModel");
 // ✅ Lấy danh sách xe, có populate Brand
 exports.getAllMotos = async (req, res) => {
   try {
-    const motos = await Moto.find()
-      .populate("brand", "name image") // chỉ lấy name, image của Brand
-      .populate("owner", "email roles"); // lấy email và roles của User
-    res.json(motos);
-  } catch (err) {
-    console.error("Lỗi lấy danh sách moto:", err);
-    res.status(500).json({ message: "Lỗi server" });
+    const motos = await Moto.find().populate("brandId").populate("userId");
+    res.status(200).json(motos);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách xe máy:", error);
+    res.status(500).json({ message: "Lỗi máy chủ." });
   }
 };
 // Lấy xe theo biển số (case-insensitive, exact match)
 exports.getByLicensePlate = async (req, res) => {
   try {
     const { licensePlate } = req.params;
+    console.log("License Plate nhận được:", licensePlate); // Log giá trị licensePlate
+
     if (!licensePlate)
       return res.status(400).json({ message: "Missing licensePlate" });
 
-    // escape regex special chars
+    // Escape regex special characters
     const escaped = licensePlate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const moto = await Moto.findOne({
       licensePlate: { $regex: `^${escaped}$`, $options: "i" },
     })
-      .populate("brand", "name image")
-      .populate("owner", "email roles");
+      .populate("brandId", "name image")
+      .populate("userId", "email roles");
+
+    console.log("Kết quả tìm kiếm:", moto); // Log kết quả tìm kiếm
 
     if (!moto)
       return res
@@ -79,7 +81,7 @@ exports.updateMoto = async (req, res) => {
 
     const moto = await Moto.findByIdAndUpdate(
       id,
-      { model, year, color, brand: brandId },
+      { model, year, color, brandId }, // Sử dụng `brandId` thay vì `brand`
       { new: true }
     );
 
