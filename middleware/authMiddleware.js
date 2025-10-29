@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 
 // ✅ Middleware: Kiểm tra token
 const authenticateToken = (req, res, next) => {
-  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+  const token = req.cookies["jwt-token"];
 
   if (!token) {
     return res
@@ -12,9 +12,10 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    req.user = decoded; // Lưu thông tin user vào req
+    req.user = decoded;
     next();
   } catch (err) {
+    console.error("Lỗi xác thực token:", err.message);
     res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn." });
   }
 };

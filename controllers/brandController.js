@@ -1,5 +1,6 @@
 const e = require("express");
 const Brand = require("../models/brandModel");
+const Part = require("../models/partModel");
 
 // ✅ Lấy tất cả Brand
 exports.getAllBrands = async (req, res) => {
@@ -67,14 +68,34 @@ exports.updateBrand = async (req, res) => {
 // ✅ Xóa Brand
 exports.deleteBrand = async (req, res) => {
   try {
-    const { id } = req.params;
-    const brand = await Brand.findByIdAndDelete(id);
+    const brandId = req.params.id;
 
-    if (!brand)
-      return res.status(404).json({ message: "Không tìm thấy thương hiệu" });
+    // Kiểm tra xem có phụ tùng nào đang tham chiếu đến thương hiệu này không
+    const partsUsingBrand = await Part.find({ brandId });
+    if (partsUsingBrand.length > 0) {
+      return res.status(400).json({
+        message:
+          "Không thể xóa thương hiệu vì có phụ tùng đang tham chiếu đến thương hiệu này.",
+        parts: partsUsingBrand.map((part) => ({
+          id: part._id,
+          name: part.name,
+        })),
+      });
+    }
 
-    res.json({ message: "Xóa thương hiệu thành công" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // Xóa thương hiệu nếu không có phụ tùng nào tham chiếu
+    const deletedBrand = await Brand.findByIdAndDelete(brandId);
+    if (!deletedBrand) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thương hiệu để xóa." });
+    }
+
+    res.status(200).json({ message: "Thương hiệu đã được xóa thành công." });
+  } catch (error) {
+    console.error("Error deleting brand:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi xóa thương hiệu.", error: error.message });
   }
 };

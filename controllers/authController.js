@@ -119,8 +119,9 @@ exports.loginUser = async (req, res) => {
 };
 
 // ======================= Đăng xuất ==========================
-exports.logout = async (req, res) => {
-  res.clearCookie("token").json({ message: "Đã đăng xuất." });
+exports.logout = (req, res) => {
+  res.clearCookie("jwt-token", { path: "/" }); // Xóa cookie chứa token
+  res.status(200).json({ message: "Đăng xuất thành công!" });
 };
 
 // ======================= Kiểm tra đăng nhập ==========================
@@ -263,4 +264,11 @@ exports.resetPassword = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+exports.getMe = (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Chưa đăng nhập." });
+  }
+  res.status(200).json({ user: req.user });
 };

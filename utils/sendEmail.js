@@ -1,15 +1,15 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
 });
 
 async function sendEmail(to, subject, otp, fullName) {
-  const htmlContent = `
+    const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 10px; background-color: #f4f4f4; text-align: center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
       <div style="background-color: #4CAF50; padding: 20px; border-radius: 10px 10px 0 0;">
         <h1 style="color: #fff; font-size: 28px; margin: 0;">Garage Hub</h1>
@@ -40,12 +40,12 @@ async function sendEmail(to, subject, otp, fullName) {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"Garage Hub" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html: htmlContent,
-  });
+    await transporter.sendMail({
+        from: `"Garage Hub" <${process.env.EMAIL_USER}>`,
+        to,
+        subject,
+        html: htmlContent,
+    });
 }
 
 module.exports = sendEmail;
