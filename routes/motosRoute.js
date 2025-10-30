@@ -19,7 +19,7 @@ router.get(
   "/:licensePlate",
   authenticateToken,
   authorizeRoles(["admin", "employee"]),
-  motosController.getByLicensePlate // ✅ Dùng controller có populate
+  motosController.getByLicensePlate
 );
 
 // ➕ Thêm xe mới (Admin)
@@ -35,28 +35,7 @@ router.put(
   "/:licensePlate",
   authenticateToken,
   authorizeRoles(["admin", "employee"]),
-  async (req, res) => {
-    const { licensePlate } = req.params;
-    const updateData = req.body;
-
-    try {
-      const escaped = licensePlate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-      const moto = await Moto.findOneAndUpdate(
-        { licensePlate: { $regex: `^${escaped}$`, $options: "i" } },
-        updateData,
-        { new: true }
-      );
-
-      if (!moto) {
-        return res.status(404).json({ message: "Không tìm thấy xe máy" });
-      }
-
-      res.status(200).json({ message: "Cập nhật thành công", moto });
-    } catch (error) {
-      res.status(500).json({ message: "Lỗi server", error });
-    }
-  }
+  motosController.updateMoto // ✅ Gọi controller
 );
 
 // ❌ Xóa xe (Admin)
@@ -64,21 +43,8 @@ router.delete(
   "/:licensePlate",
   authenticateToken,
   authorizeRoles(["admin"]),
-  async (req, res) => {
-    const { licensePlate } = req.params;
-
-    try {
-      const moto = await Moto.findOneAndDelete({ licensePlate });
-
-      if (!moto) {
-        return res.status(404).json({ message: "Không tìm thấy xe máy" });
-      }
-
-      res.status(200).json({ message: "Xóa xe thành công" });
-    } catch (error) {
-      res.status(500).json({ message: "Lỗi server", error });
-    }
-  }
+  motosController.deleteMoto // ✅ Gọi controller thay vì viết inline
 );
+
 
 module.exports = router;

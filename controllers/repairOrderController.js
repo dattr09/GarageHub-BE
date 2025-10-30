@@ -1,5 +1,6 @@
 const RepairOrder = require("../models/repairOrderModel");
 const User = require("../models/userModel");
+const Part = require("../models/partModel"); // Đảm bảo đã import model Part
 
 // Controller tạo phiếu sửa chữa
 exports.createRepairOrder = async (req, res) => {
@@ -67,5 +68,122 @@ exports.createRepairOrder = async (req, res) => {
     res
       .status(500)
       .json({ message: "Tạo phiếu thất bại", error: error.message });
+  }
+};
+
+exports.getRepairOrders = async (req, res) => {
+  try {
+    // Nếu bạn muốn lọc theo role
+    const user = req.user;
+
+    let filter = {};
+    // Nếu là nhân viên, chỉ xem các phiếu do họ tạo
+    if (user.roles.includes("employee")) {
+      filter.employeeId = user.userId;
+    }
+    // Nếu là admin thì thấy tất cả
+
+    const orders = await RepairOrder.find(filter)
+      .populate("customerId", "fullName email phone")
+      .populate("employeeId", "fullName email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách phiếu:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi lấy danh sách phiếu",
+      error: error.message,
+    });
+  }
+};
+
+// Lấy phiếu sửa chữa theo ID
+exports.getRepairOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await RepairOrder.findById(id)
+      .populate("customerId", "fullName email phone")
+      .populate("employeeId", "fullName email phone")
+      .populate({
+        path: "items.partId",
+        populate: { path: "brandId", select: "name" }
+      });
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu sửa chữa" });
+    }
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+  }
+};
+
+// Sửa phiếu sửa chữa
+exports.updateRepairOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      items,
+      repairCosts,
+      notes,
+      paymentMethod,
+      status,
+    } = req.body;
+
+    const order = await RepairOrder.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu sửa chữa" });
+    }
+
+    // Xác định trạng thái trước và sau
+    const prevStatus = order.status;
+    const nextStatus = status !== undefined ? status : prevStatus;
+
+    // Nếu chuyển từ khác Completed sang Completed => Trừ kho
+    if (nextStatus === "Completed" && prevStatus !== "Completed") {
+      for (const item of items) {
+        await Part.findByIdAndUpdate(
+          item.partId,
+          { $inc: { quantity: -Math.abs(item.quantity) } }
+        );
+      }
+    }
+
+    // Nếu chuyển từ Completed về trạng thái khác => Cộng lại kho
+    if (prevStatus === "Completed" && nextStatus !== "Completed") {
+      for (const item of items) {
+        await Part.findByIdAndUpdate(
+          item.partId,
+          { $inc: { quantity: Math.abs(item.quantity) } }
+        );
+      }
+    }
+
+    // Cập nhật các trường cho phép sửa
+    if (items) order.items = items;
+    if (repairCosts !== undefined) order.repairCosts = repairCosts;
+    if (notes !== undefined) order.notes = notes;
+    if (paymentMethod !== undefined) order.paymentMethod = paymentMethod;
+    if (status !== undefined) order.status = status;
+
+    await order.save();
+
+    // Populate lại thông tin
+    const updatedOrder = await RepairOrder.findById(id)
+      .populate("customerId", "fullName email phone")
+      .populate("employeeId", "fullName email phone")
+      .populate({
+        path: "items.partId",
+        populate: { path: "brandId", select: "name" }
+      });
+
+    res.status(200).json({ success: true, message: "Cập nhật thành công", data: updatedOrder });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
   }
 };

@@ -1,6 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { createRepairOrder } = require("../controllers/repairOrderController");
+const {
+  createRepairOrder,
+  getRepairOrders,
+  getRepairOrderById,
+  updateRepairOrder,
+} = require("../controllers/repairOrderController");
 
 const {
   authenticateToken,
@@ -11,16 +16,31 @@ const {
 router.post(
   "/",
   authenticateToken,
-  authorizeRoles(["admin"]),
+  authorizeRoles(["admin", "employee"]),
   createRepairOrder
 );
 
-// Xem phiếu của khách hàng
-// router.get(
-//   "/user/:customerId",
-//   authenticateToken,
-//   authorizeRoles(["admin"]),
-//   repairOrderController.getByUser
-// );
+router.get(
+  "/",
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
+  getRepairOrders
+);
+
+// Lấy phiếu theo id
+router.get(
+  "/:id",
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
+  getRepairOrderById
+);
+
+// Sửa phiếu
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
+  updateRepairOrder
+);
 
 module.exports = router;
