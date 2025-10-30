@@ -36,12 +36,17 @@ const initializeChatSocket = (io) => {
     // Admin join vào tất cả các room để nhận tin nhắn
     if (isAdmin) {
       socket.join("admin-room");
+      console.log(`✅ Admin ${userId} joined admin-room`);
     }
 
     // Gửi tin nhắn từ user/admin
     socket.on("send-message", async (data) => {
       try {
         const { conversationId, message, attachments } = data;
+
+        console.log(`📤 Sending message from ${isAdmin ? 'admin' : 'user'} ${userId}`);
+        console.log(`   conversationId: ${conversationId}`);
+        console.log(`   message: ${message}`);
 
         // Tạo tin nhắn mới trong database
         const newMessage = await Message.create({
@@ -61,9 +66,12 @@ const initializeChatSocket = (io) => {
         // Gửi tin nhắn đến người nhận
         if (isAdmin) {
           // Admin gửi -> gửi đến user trong conversation đó
+          console.log(`   → Sending to user conversation: ${conversationId}`);
           chatNamespace.to(conversationId).emit("receive-message", populatedMessage);
         } else {
           // User gửi -> gửi đến tất cả admin
+          console.log(`   → Broadcasting to admin-room`);
+          console.log(`   → Active admins: ${adminSockets.size}`);
           chatNamespace.to("admin-room").emit("receive-message", populatedMessage);
           // Gửi lại cho chính user (để đồng bộ nếu user mở nhiều tab)
           socket.emit("receive-message", populatedMessage);
