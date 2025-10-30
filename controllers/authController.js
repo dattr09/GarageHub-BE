@@ -275,7 +275,7 @@ exports.getMe = (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("fullName phoneNumber");
+    const users = await User.find().select("fullName phoneNumber roles");
     res.status(200).json(users);
   } catch (error) {
     console.error("Lỗi khi lấy danh sách người dùng:", error);
