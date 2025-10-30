@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/userModel");
 
 // ✅ Middleware: Kiểm tra token
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const token = req.cookies["jwt-token"];
 
   if (!token) {
@@ -12,7 +13,22 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    req.user = decoded;
+    
+    // Lấy thông tin user mới nhất từ DB (bao gồm roles mới)
+    const user = await User.findById(decoded.userId).select("fullName email roles");
+    
+    if (!user) {
+      return res.status(401).json({ message: "User không tồn tại." });
+    }
+    
+    // Gán user info mới nhất vào req.user
+    req.user = {
+      userId: user._id,
+      name: user.fullName,
+      email: user.email,
+      roles: user.roles, // Roles mới nhất từ DB
+    };
+    
     next();
   } catch (err) {
     console.error("Lỗi xác thực token:", err.message);
