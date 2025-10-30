@@ -8,6 +8,8 @@ const morgan = require("morgan");
 const cors = require("cors");
 const bodyParser = require("body-parser"); // Import body-parser
 const http = require("http");
+const { Server } = require("socket.io");
+const initializeChatSocket = require("./sockets/chatSocket");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -39,7 +41,30 @@ app.use("/", (req, res) => {
 
 const server = http.createServer(app);
 
+// Khởi tạo Socket.IO với CORS
+const io = new Server(server, {
+  cors: {
+    origin: [FRONTEND_URL, "http://192.168.2.245:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// Khởi tạo chat socket
+const chatStats = initializeChatSocket(io);
+
+// API để lấy thống kê chat (optional)
+app.get("/api/v1/chat/stats", (req, res) => {
+  res.json({
+    activeUsers: chatStats.getActiveUsersCount(),
+    activeAdmins: chatStats.getActiveAdminsCount(),
+    onlineUsers: chatStats.getOnlineUsers(),
+    timestamp: new Date()
+  });
+});
+
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server started at http://localhost:${PORT}`);
+  console.log(`💬 Chat WebSocket ready at ws://localhost:${PORT}/chat`);
   connectDB();
 });
