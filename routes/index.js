@@ -8,6 +8,8 @@ router.use("/parts", require("./partRoute"));
 router.use("/repair-orders", require("./repairOrderRoutes"));
 
 router.use("/statistics", require("./statistics"));
+router.use("/chat", require("./chatRoutes"));
+
 
 router.use("/gemini", require("./gemini"));
 
