@@ -1,5 +1,5 @@
 const express = require("express");
-const { authenticateToken } = require("../middleware/authMiddleware");
+const { authenticateToken, authorizeRoles } = require("../middleware/authMiddleware");
 const {
   getAllParts,
   getPartById,
@@ -12,15 +12,15 @@ const {
 
 const router = express.Router();
 
-// Public route (nếu bạn muốn cho phép khách hàng xem danh sách phụ tùng)
+// Public route
 router.get("/", getAllParts);
 router.get("/:id", getPartById);
 
-// Các route yêu cầu đăng nhập & phân quyền
-router.post("/", authenticateToken, createPart);
-router.put("/:id", authenticateToken, updatePart);
-router.delete("/:id", authenticateToken, deletePart);
+// Các route yêu cầu đăng nhập & phân quyền (admin hoặc employee)
+router.post("/", authenticateToken, authorizeRoles(["admin", "employee"]), createPart);
+router.put("/:id", authenticateToken, authorizeRoles(["admin", "employee"]), updatePart);
+router.delete("/:id", authenticateToken, authorizeRoles(["admin", "employee"]), deletePart);
 router.get("/:brandId/parts", getPartsByBrand);
-router.patch("/:id/quantity", updatePartQuantity);
+router.patch("/:id/quantity", authenticateToken, authorizeRoles(["admin", "employee"]), updatePartQuantity);
 
 module.exports = router;
