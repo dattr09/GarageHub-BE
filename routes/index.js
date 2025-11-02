@@ -6,11 +6,8 @@ router.use("/motos", require("./motosRoute"));
 router.use("/brands", require("./brandRoutes"));
 router.use("/parts", require("./partRoute"));
 router.use("/repair-orders", require("./repairOrderRoutes"));
-
 router.use("/statistics", require("./statistics"));
 router.use("/chat", require("./chatRoutes"));
-
-
 router.use("/gemini", require("./gemini"));
 
 module.exports = router;
