@@ -9,6 +9,7 @@ const {
   getPartsByBrand,
   updatePartQuantity,
 } = require("../controllers/partController");
+const { uploadImageMiddleware } = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -17,8 +18,8 @@ router.get("/", getAllParts);
 router.get("/:id", getPartById);
 
 // Các route yêu cầu đăng nhập & phân quyền (admin hoặc employee)
-router.post("/", authenticateToken, authorizeRoles(["admin", "employee"]), createPart);
-router.put("/:id", authenticateToken, authorizeRoles(["admin", "employee"]), updatePart);
+router.post("/", authenticateToken, authorizeRoles(["admin", "employee"]), uploadImageMiddleware, createPart);
+router.put("/:id", authenticateToken, authorizeRoles(["admin", "employee"]), uploadImageMiddleware, updatePart);
 router.delete("/:id", authenticateToken, authorizeRoles(["admin", "employee"]), deletePart);
 router.get("/:brandId/parts", getPartsByBrand);
 router.patch("/:id/quantity", authenticateToken, authorizeRoles(["admin", "employee"]), updatePartQuantity);

@@ -1,4 +1,5 @@
 const Part = require("../models/partModel");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../services/cloudinary/upload");
 
 // 📦 Lấy tất cả phụ tùng
 exports.getAllParts = async (req, res) => {
@@ -29,10 +30,19 @@ exports.getPartById = async (req, res) => {
 // ➕ Thêm phụ tùng mới
 exports.createPart = async (req, res) => {
   try {
-    const part = new Part(req.body);
+    const partData = { ...req.body };
+
+    // Upload ảnh lên Cloudinary nếu có
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, "part");
+      partData.image = result.public_id;
+    }
+
+    const part = new Part(partData);
     await part.save();
     res.status(201).json({ message: "Thêm phụ tùng thành công", part });
   } catch (err) {
+    console.error("Lỗi khi tạo part:", err);
     res
       .status(400)
       .json({ message: "Thêm phụ tùng thất bại", error: err.message });
@@ -42,16 +52,38 @@ exports.createPart = async (req, res) => {
 // ✏️ Cập nhật phụ tùng
 exports.updatePart = async (req, res) => {
   try {
-    const part = await Part.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const part = await Part.findById(req.params.id);
     if (!part)
       return res
         .status(404)
         .json({ message: "Không tìm thấy phụ tùng để cập nhật" });
+
+    // Nếu có ảnh mới, upload lên Cloudinary và xóa ảnh cũ
+    if (req.file) {
+      // Xóa ảnh cũ nếu có
+      if (part.image) {
+        try {
+          await deleteFromCloudinary(part.image);
+        } catch (err) {
+          console.error("Lỗi khi xóa ảnh cũ:", err);
+        }
+      }
+      // Upload ảnh mới
+      const result = await uploadToCloudinary(req.file.buffer, "part");
+      part.image = result.public_id;
+    }
+
+    // Cập nhật các trường khác
+    Object.keys(req.body).forEach((key) => {
+      if (key !== "image") {
+        part[key] = req.body[key];
+      }
+    });
+
+    await part.save();
     res.status(200).json({ message: "Cập nhật thành công", part });
   } catch (err) {
+    console.error("Lỗi khi cập nhật part:", err);
     res.status(400).json({ message: "Cập nhật thất bại", error: err.message });
   }
 };
@@ -59,13 +91,25 @@ exports.updatePart = async (req, res) => {
 // 🗑️ Xóa phụ tùng
 exports.deletePart = async (req, res) => {
   try {
-    const part = await Part.findByIdAndDelete(req.params.id);
+    const part = await Part.findById(req.params.id);
     if (!part)
       return res
         .status(404)
         .json({ message: "Không tìm thấy phụ tùng để xóa" });
+
+    // Xóa ảnh trên Cloudinary nếu có
+    if (part.image) {
+      try {
+        await deleteFromCloudinary(part.image);
+      } catch (err) {
+        console.error("Lỗi khi xóa ảnh trên Cloudinary:", err);
+      }
+    }
+
+    await Part.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Xóa phụ tùng thành công" });
   } catch (err) {
+    console.error("Lỗi khi xóa part:", err);
     res
       .status(500)
       .json({ message: "Lỗi khi xóa phụ tùng", error: err.message });
