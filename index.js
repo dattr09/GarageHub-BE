@@ -10,6 +10,7 @@ const bodyParser = require("body-parser"); // Import body-parser
 const http = require("http");
 const { Server } = require("socket.io");
 const initializeChatSocket = require("./sockets/chatSocket");
+const initializeAppointmentSocket = require("./sockets/appointmentSocket");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -53,6 +54,11 @@ const io = new Server(server, {
 // Khởi tạo chat socket
 const chatStats = initializeChatSocket(io);
 
+// Khởi tạo appointment socket
+const appointmentSocket = initializeAppointmentSocket(io);
+// Export để dùng trong controller
+app.set("appointmentSocket", appointmentSocket);
+
 // API để lấy thống kê chat (optional)
 app.get("/api/v1/chat/stats", (req, res) => {
   res.json({
@@ -66,5 +72,6 @@ app.get("/api/v1/chat/stats", (req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server started at http://localhost:${PORT}`);
   console.log(`💬 Chat WebSocket ready at ws://localhost:${PORT}/chat`);
+  console.log(`📅 Appointment WebSocket ready at ws://localhost:${PORT}/appointments`);
   connectDB();
 });

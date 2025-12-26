@@ -1,6 +1,7 @@
 const RepairOrder = require("../models/repairOrderModel");
 const User = require("../models/userModel");
 const Part = require("../models/partModel"); // Đảm bảo đã import model Part
+const Moto = require("../models/motoModel");
 
 // Controller tạo phiếu sửa chữa
 exports.createRepairOrder = async (req, res) => {
@@ -33,6 +34,14 @@ exports.createRepairOrder = async (req, res) => {
       return res
         .status(400)
         .json({ message: "User này không phải khách hàng" });
+    }
+
+    // Kiểm tra customer đã đăng ký xe bên moto chưa
+    const moto = await Moto.findOne({ userId: customerId });
+    if (!moto) {
+      return res
+        .status(400)
+        .json({ message: "Khách hàng này chưa đăng ký xe. Vui lòng đăng ký xe trước khi tạo phiếu sửa chữa." });
     }
 
     // Tính tổng tiền tự động
@@ -128,6 +137,7 @@ exports.updateRepairOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      customerId,
       items,
       repairCosts,
       notes,
@@ -138,6 +148,23 @@ exports.updateRepairOrder = async (req, res) => {
     const order = await RepairOrder.findById(id);
     if (!order) {
       return res.status(404).json({ message: "Không tìm thấy phiếu sửa chữa" });
+    }
+
+    // Nếu có thay đổi customerId, kiểm tra customer đã đăng ký xe chưa
+    if (customerId && customerId.toString() !== order.customerId.toString()) {
+      const customer = await User.findById(customerId);
+      if (!customer || !customer.roles?.some((r) => r.toLowerCase() === "user")) {
+        return res
+          .status(400)
+          .json({ message: "User này không phải khách hàng" });
+      }
+
+      const moto = await Moto.findOne({ userId: customerId });
+      if (!moto) {
+        return res
+          .status(400)
+          .json({ message: "Khách hàng này chưa đăng ký xe. Vui lòng đăng ký xe trước khi cập nhật phiếu sửa chữa." });
+      }
     }
 
     // Xác định trạng thái trước và sau
@@ -165,6 +192,7 @@ exports.updateRepairOrder = async (req, res) => {
     }
 
     // Cập nhật các trường cho phép sửa
+    if (customerId) order.customerId = customerId;
     if (items) order.items = items;
     if (repairCosts !== undefined) order.repairCosts = repairCosts;
     if (notes !== undefined) order.notes = notes;
@@ -185,5 +213,29 @@ exports.updateRepairOrder = async (req, res) => {
     res.status(200).json({ success: true, message: "Cập nhật thành công", data: updatedOrder });
   } catch (error) {
     res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+  }
+};
+
+// Lấy danh sách customers đã đăng ký xe (để hiển thị trong form tạo/sửa repair order)
+exports.getCustomersWithMotos = async (req, res) => {
+  try {
+    // Lấy danh sách userId từ bảng Moto (những user đã đăng ký xe)
+    const userIds = await Moto.distinct("userId");
+    
+    // Nếu không có user nào đăng ký xe
+    if (!userIds || userIds.length === 0) {
+      return res.status(200).json([]);
+    }
+    
+    // Lấy thông tin users từ danh sách userId đó và filter theo role "user"
+    const customers = await User.find({
+      _id: { $in: userIds },
+      roles: { $in: ["user"] }
+    }).select("fullName phoneNumber email roles _id");
+
+    res.status(200).json(customers);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách customers đã đăng ký xe:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };

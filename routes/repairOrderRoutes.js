@@ -5,6 +5,7 @@ const {
   getRepairOrders,
   getRepairOrderById,
   updateRepairOrder,
+  getCustomersWithMotos,
 } = require("../controllers/repairOrderController");
 
 const {
@@ -25,6 +26,14 @@ router.get(
   authenticateToken,
   authorizeRoles(["admin", "employee"]),
   getRepairOrders
+);
+
+// Lấy danh sách customers đã đăng ký xe (phải đặt trước /:id để tránh conflict)
+router.get(
+  "/customers/with-motos",
+  authenticateToken,
+  authorizeRoles(["admin", "employee"]),
+  getCustomersWithMotos
 );
 
 // Lấy phiếu theo id
