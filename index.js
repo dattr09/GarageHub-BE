@@ -71,7 +71,5 @@ app.get("/api/v1/chat/stats", (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server started at http://localhost:${PORT}`);
-  console.log(`💬 Chat WebSocket ready at ws://localhost:${PORT}/chat`);
-  console.log(`📅 Appointment WebSocket ready at ws://localhost:${PORT}/appointments`);
   connectDB();
 });
