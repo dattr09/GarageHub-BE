@@ -11,6 +11,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const initializeChatSocket = require("./sockets/chatSocket");
 const initializeAppointmentSocket = require("./sockets/appointmentSocket");
+const initializeOrderSocket = require("./sockets/orderSocket");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -58,6 +59,11 @@ const chatStats = initializeChatSocket(io);
 const appointmentSocket = initializeAppointmentSocket(io);
 // Export để dùng trong controller
 app.set("appointmentSocket", appointmentSocket);
+
+// Khởi tạo order socket
+const orderSocket = initializeOrderSocket(io);
+// Export để dùng trong controller
+app.set("orderSocket", orderSocket);
 
 // API để lấy thống kê chat (optional)
 app.get("/api/v1/chat/stats", (req, res) => {

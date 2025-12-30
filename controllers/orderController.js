@@ -207,6 +207,13 @@ exports.confirmOrder = async (req, res) => {
     order.updatedAt = new Date(); // Cập nhật thời gian chỉnh sửa
     await order.save();
 
+    // Emit socket event để cập nhật real-time trên mobile/web
+    const orderSocket = req.app.get("orderSocket");
+    if (orderSocket && order.userId) {
+      orderSocket.emitOrderStatusUpdate(order.userId.toString(), order);
+      console.log(`📦 Order status update emitted for user ${order.userId}`);
+    }
+
     res.status(200).json({
       message: "Đơn hàng đã được xác nhận thành công!",
       order,

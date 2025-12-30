@@ -131,10 +131,16 @@ const sendMessage = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { conversationId } = req.params;
+    const isAdmin = req.user.roles && req.user.roles.includes("admin");
+
+    // Admin đánh dấu tin nhắn từ user là đã đọc
+    // User đánh dấu tin nhắn từ admin là đã đọc
+    const senderRoleToMark = isAdmin ? "user" : "admin";
 
     await Message.updateMany(
       {
         conversationId,
+        senderRole: senderRoleToMark,
         isRead: false,
       },
       { isRead: true }
