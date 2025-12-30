@@ -3,7 +3,16 @@ const User = require("../models/userModel");
 
 // ✅ Middleware: Kiểm tra token
 const authenticateToken = async (req, res, next) => {
-  const token = req.cookies["jwt-token"];
+  // Check cookie first, then Authorization header
+  let token = req.cookies["jwt-token"];
+
+  // If no cookie, check Authorization header (for mobile apps)
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (!token) {
     return res
@@ -13,14 +22,14 @@ const authenticateToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    
+
     // Lấy thông tin user mới nhất từ DB (bao gồm roles mới)
     const user = await User.findById(decoded.userId).select("fullName email roles");
-    
+
     if (!user) {
       return res.status(401).json({ message: "User không tồn tại." });
     }
-    
+
     // Gán user info mới nhất vào req.user
     req.user = {
       userId: user._id,
@@ -28,7 +37,7 @@ const authenticateToken = async (req, res, next) => {
       email: user.email,
       roles: user.roles, // Roles mới nhất từ DB
     };
-    
+
     next();
   } catch (err) {
     console.error("Lỗi xác thực token:", err.message);
