@@ -63,18 +63,21 @@ const initializeChatSocket = (io) => {
           "username email avatar"
         );
 
+        // Convert Mongoose document to plain object for proper socket serialization
+        const messageData = populatedMessage.toObject();
+
         // Gửi tin nhắn đến người nhận
         if (isAdmin) {
           // Admin gửi -> gửi đến user trong conversation đó
           console.log(`   → Sending to user conversation: ${conversationId}`);
-          chatNamespace.to(conversationId).emit("receive-message", populatedMessage);
+          chatNamespace.to(conversationId).emit("receive-message", messageData);
         } else {
           // User gửi -> gửi đến tất cả admin
           console.log(`   → Broadcasting to admin-room`);
           console.log(`   → Active admins: ${adminSockets.size}`);
-          chatNamespace.to("admin-room").emit("receive-message", populatedMessage);
+          chatNamespace.to("admin-room").emit("receive-message", messageData);
           // Gửi lại cho chính user (để đồng bộ nếu user mở nhiều tab)
-          socket.emit("receive-message", populatedMessage);
+          socket.emit("receive-message", messageData);
         }
 
         console.log(
