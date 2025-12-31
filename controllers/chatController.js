@@ -198,10 +198,45 @@ const getUnreadCount = async (req, res) => {
   }
 };
 
+// Upload ảnh chat lên Cloudinary
+const uploadChatImages = async (req, res) => {
+  try {
+    const { uploadToCloudinary } = require("../services/cloudinary/upload");
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Không có file nào được upload",
+      });
+    }
+
+    const uploadPromises = req.files.map((file) =>
+      uploadToCloudinary(file.buffer, "message")
+    );
+
+    const results = await Promise.all(uploadPromises);
+    const urls = results.map((result) => result.secure_url);
+
+    res.status(200).json({
+      success: true,
+      urls,
+      message: `Đã upload ${urls.length} ảnh thành công`,
+    });
+  } catch (error) {
+    console.error("Error uploading chat images:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi upload ảnh",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllConversations,
   getMessages,
   sendMessage,
   markAsRead,
   getUnreadCount,
+  uploadChatImages,
 };
