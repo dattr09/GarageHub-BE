@@ -9,6 +9,7 @@ const {
   getPartsByBrand,
   updatePartQuantity,
 } = require("../controllers/partController");
+const { getReviewsByPart, createReview, deleteReview } = require("../controllers/reviewController");
 const { uploadImageMiddleware } = require("../middleware/upload");
 
 const router = express.Router();
@@ -16,6 +17,11 @@ const router = express.Router();
 // Public route
 router.get("/", getAllParts);
 router.get("/:id", getPartById);
+
+// Review routes
+router.get("/:partId/reviews", getReviewsByPart);
+router.post("/:partId/reviews", authenticateToken, createReview);
+router.delete("/reviews/:reviewId", authenticateToken, deleteReview);
 
 // Các route yêu cầu đăng nhập & phân quyền (admin hoặc employee)
 router.post("/", authenticateToken, authorizeRoles(["admin", "employee"]), uploadImageMiddleware, createPart);

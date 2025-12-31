@@ -1,11 +1,46 @@
 const Part = require("../models/partModel");
+const Review = require("../models/reviewModel");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../services/cloudinary/upload");
 
 // 📦 Lấy tất cả phụ tùng
 exports.getAllParts = async (req, res) => {
   try {
-    const parts = await Part.find().populate("brandId", "name"); // nếu Brand có trường name
-    res.status(200).json(parts);
+    const parts = await Part.find().populate("brandId", "name");
+
+    // Get average ratings for all parts
+    const partIds = parts.map(p => p._id);
+    const ratingsAgg = await Review.aggregate([
+      { $match: { partId: { $in: partIds } } },
+      {
+        $group: {
+          _id: "$partId",
+          averageRating: { $avg: "$rating" },
+          reviewCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Create a map for quick lookup
+    const ratingsMap = {};
+    ratingsAgg.forEach(r => {
+      ratingsMap[r._id.toString()] = {
+        averageRating: Math.round(r.averageRating * 10) / 10,
+        reviewCount: r.reviewCount
+      };
+    });
+
+    // Add ratings to parts
+    const partsWithRatings = parts.map(part => {
+      const partObj = part.toObject();
+      const rating = ratingsMap[part._id.toString()];
+      return {
+        ...partObj,
+        averageRating: rating?.averageRating || 0,
+        reviewCount: rating?.reviewCount || 0
+      };
+    });
+
+    res.status(200).json(partsWithRatings);
   } catch (err) {
     res
       .status(500)
@@ -132,21 +167,21 @@ exports.getPartsByBrand = async (req, res) => {
 
 // Cập nhật số lượng phụ tùng
 exports.updatePartQuantity = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { quantity } = req.body;
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
 
-        const part = await Part.findById(id);
-        if (!part) {
-            return res.status(404).json({ message: "Sản phẩm không tồn tại." });
-        }
-
-        part.quantity += quantity;
-        await part.save();
-
-        res.status(200).json({ message: "Cập nhật tồn kho thành công.", part });
-    } catch (error) {
-        console.error("Lỗi khi cập nhật tồn kho:", error);
-        res.status(500).json({ message: "Cập nhật tồn kho thất bại.", error: error.message });
+    const part = await Part.findById(id);
+    if (!part) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại." });
     }
+
+    part.quantity += quantity;
+    await part.save();
+
+    res.status(200).json({ message: "Cập nhật tồn kho thành công.", part });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật tồn kho:", error);
+    res.status(500).json({ message: "Cập nhật tồn kho thất bại.", error: error.message });
+  }
 };
