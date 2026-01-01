@@ -30,7 +30,7 @@ const getAllConversations = async (req, res) => {
     // Populate thông tin user
     const conversationsWithUser = await Promise.all(
       conversations.map(async (conv) => {
-        const user = await User.findById(conv.senderId).select("username email phone avatar");
+        const user = await User.findById(conv.senderId).select("username fullName email phone avatar");
         return {
           conversationId: conv._id,
           lastMessage: conv.lastMessage,
@@ -65,7 +65,7 @@ const getMessages = async (req, res) => {
       .sort({ createdAt: 1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip))
-      .populate("senderId", "username email avatar");
+      .populate("senderId", "username fullName email avatar");
 
     // Đánh dấu tin nhắn đã đọc nếu user là admin
     if (req.user && req.user.roles && req.user.roles.includes("admin")) {
@@ -110,7 +110,7 @@ const sendMessage = async (req, res) => {
 
     const populatedMessage = await Message.findById(newMessage._id).populate(
       "senderId",
-      "username email avatar"
+      "username fullName email avatar"
     );
 
     res.status(201).json({

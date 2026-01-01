@@ -157,8 +157,42 @@ exports.getPartsByBrand = async (req, res) => {
 
   try {
     // Tìm tất cả các phụ tùng có brandId khớp
-    const parts = await Part.find({ brandId });
-    res.status(200).json(parts);
+    const parts = await Part.find({ brandId }).populate("brandId", "name");
+
+    // Get average ratings for all parts (same logic as getAllParts)
+    const partIds = parts.map(p => p._id);
+    const ratingsAgg = await Review.aggregate([
+      { $match: { partId: { $in: partIds } } },
+      {
+        $group: {
+          _id: "$partId",
+          averageRating: { $avg: "$rating" },
+          reviewCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Create a map for quick lookup
+    const ratingsMap = {};
+    ratingsAgg.forEach(r => {
+      ratingsMap[r._id.toString()] = {
+        averageRating: Math.round(r.averageRating * 10) / 10,
+        reviewCount: r.reviewCount
+      };
+    });
+
+    // Add ratings to parts
+    const partsWithRatings = parts.map(part => {
+      const partObj = part.toObject();
+      const rating = ratingsMap[part._id.toString()];
+      return {
+        ...partObj,
+        averageRating: rating?.averageRating || 0,
+        reviewCount: rating?.reviewCount || 0
+      };
+    });
+
+    res.status(200).json(partsWithRatings);
   } catch (error) {
     console.error("Error fetching parts by brand:", error);
     res.status(500).json({ message: "Lỗi khi lấy danh sách phụ tùng." });
