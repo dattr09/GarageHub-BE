@@ -8,87 +8,214 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-async function sendOrderConfirmationEmail({ to, orderId, totalAmount, confirmationLink, items }) {
-    const itemsHtml = items
-        .map(
-            (item) => `
+const colors = {
+    primary: '#2563eb',
+    primaryDark: '#1d4ed8',
+    primaryLight: '#dbeafe',
+    accent: '#3b82f6',
+    success: '#22c55e',
+    warning: '#f59e0b',
+    text: '#1f2937',
+    textLight: '#6b7280',
+    background: '#f8fafc',
+    white: '#ffffff',
+    border: '#e5e7eb',
+};
+function getEmailWrapper(content) {
+    return `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Garage Hub</title>
+        <!--[if mso]>
+        <style type="text/css">
+            table {border-collapse: collapse;}
+            .fallback-font {font-family: Arial, sans-serif !important;}
+        </style>
+        <![endif]-->
+    </head>
+    <body style="margin: 0; padding: 0; background-color: ${colors.background}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: ${colors.background};">
             <tr>
-                <td style="padding: 10px; border: 1px solid #eee;">${item.name}</td>
-                <td style="padding: 10px; border: 1px solid #eee; text-align: center;">${item.brand}</td>
-                <td style="padding: 10px; border: 1px solid #eee; text-align: center;">${item.quantity}</td>
-                <td style="padding: 10px; border: 1px solid #eee; text-align: right;">${item.price.toLocaleString()} đ</td>
-                <td style="padding: 10px; border: 1px solid #eee; text-align: right;">${(item.price * item.quantity).toLocaleString()} đ</td>
-            </tr>
-        `
-        )
-        .join("");
-
-    const htmlContent = `
-        <div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 40px; color: #333; text-align: center;">
-            <div style="max-width: 650px; margin: auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                
-                <!-- Header -->
-                <div style="background-color: #22c55e; color: white; padding: 25px; text-align: center;">
-                    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Garage Hub</h1>
-                    <p style="margin: 5px 0 0; font-size: 16px;">Xác nhận đơn hàng của bạn</p>
-                </div>
-
-                <!-- Body -->
-                <div style="padding: 30px;">
-                    <p style="font-size: 16px; margin: 0 0 10px;">Xin chào,</p>
-                    <p style="font-size: 15px; margin: 0 0 20px; line-height: 1.6;">
-                        Cảm ơn bạn đã mua hàng tại <strong>Garage Hub</strong>! Dưới đây là thông tin đơn hàng của bạn:
-                    </p>
-
-                    <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-                        <p style="margin: 5px 0; font-size: 15px;">🧾 <strong>Mã đơn hàng:</strong> ${orderId}</p>
-                        <p style="margin: 5px 0; font-size: 15px;">💰 <strong>Tổng tiền:</strong> ${totalAmount.toLocaleString()} đ</p>
-                    </div>
-
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: center;">
-                        <thead>
-                            <tr style="background-color: #e5e7eb; text-align: center;">
-                                <th style="padding: 10px; border: 1px solid #ddd;">Tên sản phẩm</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Hãng</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">SL</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Giá</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Tạm tính</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${itemsHtml}
-                        </tbody>
+                <td align="center" style="padding: 40px 20px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: ${colors.white}; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); overflow: hidden;">
+                        ${content}
                     </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>`;
+}
+function getEmailHeader(title, subtitle) {
+    return `
+    <tr>
+        <td style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%); padding: 32px 24px; text-align: center;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                    <td align="center">
+                        <div style="display: inline-block; background-color: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
+                            <span style="font-size: 28px; font-weight: bold; color: ${colors.white}; letter-spacing: 0.5px;">🔧 Garage Hub</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding-top: 8px;">
+                        <h1 style="margin: 0; font-size: 22px; font-weight: 600; color: ${colors.white}; letter-spacing: 0.3px;">${title}</h1>
+                        ${subtitle ? `<p style="margin: 8px 0 0; font-size: 14px; color: rgba(255,255,255,0.85);">${subtitle}</p>` : ''}
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>`;
+}
+function getEmailFooter() {
+    return `
+    <tr>
+        <td style="padding: 24px; background-color: ${colors.background}; border-top: 1px solid ${colors.border};">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                    <td align="center" style="padding-bottom: 16px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td style="padding: 0 8px;">
+                                    <a href="#" style="display: inline-block; width: 36px; height: 36px; background-color: ${colors.primaryLight}; border-radius: 8px; text-align: center; line-height: 36px; text-decoration: none;">📘</a>
+                                </td>
+                                <td style="padding: 0 8px;">
+                                    <a href="#" style="display: inline-block; width: 36px; height: 36px; background-color: ${colors.primaryLight}; border-radius: 8px; text-align: center; line-height: 36px; text-decoration: none;">📷</a>
+                                </td>
+                                <td style="padding: 0 8px;">
+                                    <a href="#" style="display: inline-block; width: 36px; height: 36px; background-color: ${colors.primaryLight}; border-radius: 8px; text-align: center; line-height: 36px; text-decoration: none;">🌐</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" style="font-size: 13px; color: ${colors.textLight}; line-height: 1.6;">
+                        <p style="margin: 0 0 4px;">📍 123 Đường ABC, Quận XYZ, TP.HCM</p>
+                        <p style="margin: 0 0 4px;">📞 Hotline: <a href="tel:1800123456" style="color: ${colors.primary}; text-decoration: none;">1800-123-456</a></p>
+                        <p style="margin: 0;">✉️ Email: <a href="mailto:support@garagehub.com" style="color: ${colors.primary}; text-decoration: none;">support@garagehub.com</a></p>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding-top: 20px;">
+                        <p style="margin: 0; font-size: 12px; color: ${colors.textLight};">© 2025 Garage Hub. All rights reserved.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>`;
+}
 
-                    <div style="text-align: center; margin-top: 30px;">
-                        <a href="${confirmationLink}"
-                           style="background-color: #22c55e; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">
-                            ✅ XÁC NHẬN ĐƠN HÀNG
-                        </a>
-                    </div>
+function getButton(text, link, icon = '') {
+    return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 24px auto;">
+        <tr>
+            <td>
+                <a href="${link}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%); color: ${colors.white}; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); transition: all 0.3s;">
+                    ${icon ? icon + ' ' : ''}${text}
+                </a>
+            </td>
+        </tr>
+    </table>`;
+}
 
-                    <p style="font-size: 13px; color: #888; text-align: center; margin-top: 25px;">
-                        Nếu bạn không thực hiện đơn hàng này, vui lòng bỏ qua email này.
-                    </p>
-                </div>
+function getInfoBox(items) {
+    const itemsHtml = items.map(item => `
+        <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid ${colors.border};">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                    <tr>
+                        <td style="font-size: 14px; color: ${colors.textLight};">${item.label}</td>
+                        <td align="right" style="font-size: 14px; font-weight: 600; color: ${colors.text};">${item.value}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>`).join('');
 
-                <!-- Footer -->
-                <div style="background-color: #22c55e; padding: 20px; text-align: center; color: white;">
-                    <p style="font-size: 13px; margin: 0;">© 2025 Garage Hub. All rights reserved.</p>
-                    <p style="font-size: 13px; margin: 5px 0 0;">Hotline: 1800-123-456 | Email: support@garagehub.com</p>
-                </div>
-            </div>
-        </div>
+    return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: ${colors.background}; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <tr>
+            <td style="padding: 16px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                    ${itemsHtml}
+                </table>
+            </td>
+        </tr>
+    </table>`;
+}
+
+async function sendOrderConfirmationEmail({ to, orderId, totalAmount, confirmationLink, items }) {
+    const itemsHtml = items.map((item, index) => `
+        <tr style="background-color: ${index % 2 === 0 ? colors.white : colors.background};">
+            <td style="padding: 14px 12px; border-bottom: 1px solid ${colors.border};">
+                <div style="font-size: 14px; font-weight: 500; color: ${colors.text}; margin-bottom: 2px;">${item.name}</div>
+                <div style="font-size: 12px; color: ${colors.textLight};">Hãng: ${item.brand}</div>
+            </td>
+            <td align="center" style="padding: 14px 8px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.text};">×${item.quantity}</td>
+            <td align="right" style="padding: 14px 12px; border-bottom: 1px solid ${colors.border}; font-size: 14px; font-weight: 600; color: ${colors.primary};">${(item.price * item.quantity).toLocaleString()}đ</td>
+        </tr>
+    `).join('');
+
+    const content = `
+        ${getEmailHeader('Xác nhận đơn hàng', 'Cảm ơn bạn đã tin tưởng Garage Hub!')}
+        
+        <tr>
+            <td style="padding: 32px 24px;">
+                <p style="margin: 0 0 20px; font-size: 15px; color: ${colors.text}; line-height: 1.6;">
+                    Xin chào,<br><br>
+                    Chúng tôi đã nhận được đơn hàng của bạn và đang chờ xác nhận. Vui lòng kiểm tra thông tin bên dưới:
+                </p>
+
+                ${getInfoBox([
+        { label: '🧾 Mã đơn hàng', value: orderId },
+        { label: '💰 Tổng thanh toán', value: `<span style="color: ${colors.success}; font-size: 18px;">${totalAmount.toLocaleString()}đ</span>` }
+    ])}
+
+                <h3 style="margin: 28px 0 16px; font-size: 16px; font-weight: 600; color: ${colors.text};">📦 Chi tiết sản phẩm</h3>
+                
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%);">
+                            <th align="left" style="padding: 12px; font-size: 13px; font-weight: 600; color: ${colors.white}; text-transform: uppercase;">Sản phẩm</th>
+                            <th align="center" style="padding: 12px; font-size: 13px; font-weight: 600; color: ${colors.white}; text-transform: uppercase;">SL</th>
+                            <th align="right" style="padding: 12px; font-size: 13px; font-weight: 600; color: ${colors.white}; text-transform: uppercase;">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+
+                ${getButton('✅ XÁC NHẬN ĐƠN HÀNG', confirmationLink)}
+
+                <p style="margin: 24px 0 0; font-size: 13px; color: ${colors.textLight}; text-align: center; line-height: 1.6;">
+                    Nếu bạn không thực hiện đơn hàng này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi.
+                </p>
+            </td>
+        </tr>
+
+        ${getEmailFooter()}
     `;
 
     await transporter.sendMail({
         from: `"Garage Hub" <${process.env.EMAIL_USER}>`,
         to,
-        subject: "Xác nhận đơn hàng của bạn - Garage Hub",
-        html: htmlContent,
+        subject: `✅ Xác nhận đơn hàng #${orderId} - Garage Hub`,
+        html: getEmailWrapper(content),
     });
 }
 
 module.exports = {
     sendOrderConfirmationEmail,
+    colors,
+    getEmailWrapper,
+    getEmailHeader,
+    getEmailFooter,
+    getButton,
+    getInfoBox,
 };
